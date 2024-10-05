@@ -2,21 +2,21 @@ package data
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"log"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
 
 const dbTimeout = time.Second * 3
 
-var db *sql.DB
+var db *pgxpool.Pool
 
 // New is the function used to create an instance of the data package. It returns the type
 // Model, which embeds all the types we want to be available to our application.
-func New(dbPool *sql.DB) Models {
+func New(dbPool *pgxpool.Pool) Models {
 	db = dbPool
 
 	return Models{
@@ -51,7 +51,7 @@ func (u *User) GetAll() ([]*User, error) {
 	query := `select id, email, first_name, last_name, password, user_active, created_at, updated_at
 	from users order by last_name`
 
-	rows, err := db.QueryContext(ctx, query)
+	rows, err := db.Query(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (u *User) GetByEmail(email string) (*User, error) {
 	query := `select id, email, first_name, last_name, password, user_active, created_at, updated_at from users where email = $1`
 
 	var user User
-	row := db.QueryRowContext(ctx, query, email)
+	row := db.QueryRow(ctx, query, email)
 
 	err := row.Scan(
 		&user.ID,
@@ -118,7 +118,7 @@ func (u *User) GetOne(id int) (*User, error) {
 	query := `select id, email, first_name, last_name, password, user_active, created_at, updated_at from users where id = $1`
 
 	var user User
-	row := db.QueryRowContext(ctx, query, id)
+	row := db.QueryRow(ctx, query, id)
 
 	err := row.Scan(
 		&user.ID,
@@ -153,7 +153,7 @@ func (u *User) Update() error {
 		where id = $6
 	`
 
-	_, err := db.ExecContext(ctx, stmt,
+	_, err := db.Exec(ctx, stmt,
 		u.Email,
 		u.FirstName,
 		u.LastName,
@@ -176,7 +176,7 @@ func (u *User) Delete() error {
 
 	stmt := `delete from users where id = $1`
 
-	_, err := db.ExecContext(ctx, stmt, u.ID)
+	_, err := db.Exec(ctx, stmt, u.ID)
 	if err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func (u *User) DeleteByID(id int) error {
 
 	stmt := `delete from users where id = $1`
 
-	_, err := db.ExecContext(ctx, stmt, id)
+	_, err := db.Exec(ctx, stmt, id)
 	if err != nil {
 		return err
 	}
@@ -213,7 +213,7 @@ func (u *User) Insert(user User) (int, error) {
 	stmt := `insert into users (email, first_name, last_name, password, user_active, created_at, updated_at)
 		values ($1, $2, $3, $4, $5, $6, $7) returning id`
 
-	err = db.QueryRowContext(ctx, stmt,
+	err = db.QueryRow(ctx, stmt,
 		user.Email,
 		user.FirstName,
 		user.LastName,
@@ -241,7 +241,7 @@ func (u *User) ResetPassword(password string) error {
 	}
 
 	stmt := `update users set password = $1 where id = $2`
-	_, err = db.ExecContext(ctx, stmt, hashedPassword, u.ID)
+	_, err = db.Exec(ctx, stmt, hashedPassword, u.ID)
 	if err != nil {
 		return err
 	}

@@ -3,14 +3,13 @@ package main
 import (
 	"authentication-service/data"
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const webPort = "80"
@@ -18,7 +17,7 @@ const webPort = "80"
 var counts int64
 
 type Config struct {
-	DB     *sql.DB
+	DB     *pgxpool.Pool
 	Models data.Models
 }
 
@@ -46,15 +45,15 @@ func main() {
 	}
 }
 
-func openDB(dsn string) (*sql.DB, error) {
+func openDB(dsn string) (*pgxpool.Pool, error) {
 	log.Println(dsn)
-	db, err := pgx.Connect(context.Background(), dsn)
+	db, err := pgxpool.New(context.Background(), dsn)
 	// db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	err = db.Ping()
+	err = db.Ping(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +61,7 @@ func openDB(dsn string) (*sql.DB, error) {
 	return db, nil
 }
 
-func connectToDB() *sql.DB {
+func connectToDB() *pgxpool.Pool {
 	dsn := os.Getenv("DSN")
 
 	for {
