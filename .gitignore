@@ -1,1 +1,4 @@
 project/db-data/postgres/
+authentication-service/authApp
+broker-service/brokerApp
+front-end/frontAppgit
