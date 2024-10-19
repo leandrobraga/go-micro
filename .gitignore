@@ -1,5 +1,6 @@
 project/db-data/postgres/
 project/db-data/mongo/
+project/db-data/rabbitmq/
 authentication-service/authApp
 broker-service/brokerApp
 front-end/frontApp
